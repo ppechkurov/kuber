@@ -12,10 +12,21 @@
     utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };
       in with pkgs; {
-        # Development environment output
         devShells.default = mkShell {
-          # The Nix packages provided in the environment
+          QEMU_KERNEL_PARAMS = "console=ttyS0";
+          QEMU_OPTS = "-nographic -serial mon:stdio";
           packages = [ direnv minikube kubectl k9s ];
+        };
+
+        vms = let
+          vm = hostname: user:
+            (nixpkgs.lib.nixosSystem {
+              modules = [ ./vms/${hostname}.nix ];
+              specialArgs = { inherit hostname user; };
+            }).config.system.build.vm;
+        in {
+          jumpbox = vm "jumpbox" "kuber";
+          server = vm "server" "kuber";
         };
       });
 }
