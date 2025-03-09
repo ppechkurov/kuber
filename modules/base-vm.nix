@@ -1,4 +1,4 @@
-{ lib, hostname, user, pkgs, config, ... }: {
+{ lib, hostname, hostconfig, hosts, user, pkgs, config, ... }: {
   options = with lib; {
     tap_if_name = mkOption {
       type = types.str;
@@ -22,8 +22,14 @@
 
   imports = [ ../modules/users.nix ];
 
-  config = {
+  config = with hostconfig; {
     networking.hostName = hostname;
+    networking.domain = "kubernetes.local";
+    networking.enableIPv6 = false;
+
+    tap_network_addr = "${ip}/24";
+    inherit tap_if_name tap_mac_address;
+
     services.getty.autologinUser = user;
     security.sudo.wheelNeedsPassword = false;
 
@@ -38,6 +44,15 @@
     networking.firewall.allowedTCPPorts = [ 22 ];
     networking.networkmanager.enable = false;
     networking.useDHCP = false;
+
+    networking.hosts = let
+      nameValuePair = lib.attrsets.nameValuePair;
+      mapConfig = hostname: cfg:
+        let
+          ip = cfg.ip;
+          domain = config.networking.domain;
+        in nameValuePair "${ip}" [ "${hostname}.${domain}" "${hostname}" ];
+    in lib.attrsets.mapAttrs' mapConfig hosts;
 
     systemd.network = {
       enable = true;

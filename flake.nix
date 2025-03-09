@@ -19,14 +19,23 @@
         };
 
         vms = let
-          vm = hostname: user:
+          user = "kuber";
+          network = "192.168.100";
+          hosts = let
+            declareHost = i: {
+              ip = "${network}.10${i}";
+              tap_if_name = "tap${i}";
+              tap_mac_address = "00:00:00:00:00:0${i}";
+            };
+          in {
+            jumpbox = declareHost "1";
+            server = declareHost "2";
+          };
+          vm = hostname: hostconfig:
             (nixpkgs.lib.nixosSystem {
               modules = [ ./vms/${hostname}.nix ];
-              specialArgs = { inherit hostname user; };
+              specialArgs = { inherit hostname hostconfig user hosts; };
             }).config.system.build.vm;
-        in {
-          jumpbox = vm "jumpbox" "kuber";
-          server = vm "server" "kuber";
-        };
+        in builtins.mapAttrs vm hosts;
       });
 }
