@@ -25,7 +25,7 @@
   config = with hostconfig; {
     networking.hostName = hostname;
     networking.domain = "kubernetes.local";
-    networking.enableIPv6 = false;
+    # networking.enableIPv6 = false;
 
     tap_network_addr = "${ip}/24";
     inherit tap_if_name tap_mac_address;
@@ -42,42 +42,41 @@
 
     services.openssh.enable = true;
     networking.firewall.allowedTCPPorts = [ 22 ];
-    networking.networkmanager.enable = false;
-    networking.useDHCP = false;
+    # networking.networkmanager.enable = false;
+    # networking.useDHCP = false;
+    #
+    # networking.hosts = let
+    #   nameValuePair = lib.attrsets.nameValuePair;
+    #   mapConfig = hostname: cfg:
+    #     let
+    #       ip = cfg.ip;
+    #       domain = config.networking.domain;
+    #     in nameValuePair "${ip}" [ "${hostname}.${domain}" "${hostname}" ];
+    # in lib.attrsets.mapAttrs' mapConfig hosts;
+    #
+    # systemd.network.enable = true;
+    #
+    # systemd.network.networks."20-lan" = {
+    #   matchConfig.Type = "ether";
+    #   networkConfig = {
+    #     Address = [ "192.168.100.5/24" "2001:db8::b/64" ];
+    #     Gateway = "192.168.100.3";
+    #     DNS = [ "192.168.100.3" ];
+    #     IPv6AcceptRA = true;
+    #     DHCP = "no";
+    #   };
+    # };
 
-    networking.hosts = let
-      nameValuePair = lib.attrsets.nameValuePair;
-      mapConfig = hostname: cfg:
-        let
-          ip = cfg.ip;
-          domain = config.networking.domain;
-        in nameValuePair "${ip}" [ "${hostname}.${domain}" "${hostname}" ];
-    in lib.attrsets.mapAttrs' mapConfig hosts;
-
-    systemd.network = {
-      enable = true;
-      networks."30-ethernet-dummy" = {
-        enable = true;
-        matchConfig.MACAddress = config.tap_mac_address;
-        linkConfig = {
-          # or "routable" with IP addresses configured
-          ActivationPolicy = "always-up";
-          RequiredForOnline = "yes";
-        };
-        networkConfig = { Address = [ config.tap_network_addr ]; };
-      };
-    };
-
-    virtualisation.vmVariant = {
-      virtualisation = {
-        qemu = {
-          networkingOptions = [
-            "-netdev tap,id=nd0,ifname=${config.tap_if_name},script=no,downscript=no,br=${config.tap_bridge_name}"
-            "-device virtio-net-pci,netdev=nd0,mac=${config.tap_mac_address}"
-          ];
-        };
-      };
-    };
+    # virtualisation.vmVariant = {
+    #   virtualisation = {
+    #     qemu = {
+    #       networkingOptions = [
+    #         "-netdev tap,id=nd0,ifname=${config.tap_if_name},script=no,downscript=no,br=${config.tap_bridge_name}"
+    #         "-device virtio-net-pci,netdev=nd0,mac=${config.tap_mac_address}"
+    #       ];
+    #     };
+    #   };
+    # };
 
     system.stateVersion = "24.11";
   };
