@@ -22,61 +22,61 @@
 
   imports = [ ../modules/users.nix ];
 
-  config = with hostconfig; {
-    networking.hostName = hostname;
-    networking.domain = "kubernetes.local";
-    # networking.enableIPv6 = false;
+  config = let prefixLength = 24;
+  in with hostconfig; {
+    nixpkgs.hostPlatform = "x86_64-linux";
 
-    tap_network_addr = "${ip}/24";
+    boot.loader.systemd-boot.enable = true;
+    boot.loader.efi.canTouchEfiVariables = true;
+
+    networking = {
+      hostName = hostname;
+      domain = "kubernetes.local";
+      enableIPv6 = false; # no fqdn without this
+      firewall.allowedTCPPorts = [ 22 ];
+      useNetworkd = true;
+      useDHCP = true;
+
+      nameservers = [ "192.168.100.1" "8.8.8.8" ];
+
+      interfaces.eth1.ipv4 = {
+        addresses = [{
+          address = ip;
+          prefixLength = 24;
+        }];
+      };
+
+      # generate /etc/hosts
+      hosts = let
+        nameValuePair = lib.attrsets.nameValuePair;
+        mapConfig = hostname: cfg:
+          let
+            ip = cfg.ip;
+            domain = config.networking.domain;
+          in nameValuePair "${ip}" [ "${hostname}.${domain}" "${hostname}" ];
+      in lib.attrsets.mapAttrs' mapConfig hosts;
+    };
+
+    tap_network_addr = "${ip}/${toString prefixLength}";
     inherit tap_if_name tap_mac_address;
+
+    services.openssh.enable = true;
 
     services.getty.autologinUser = user;
     security.sudo.wheelNeedsPassword = false;
 
     environment.systemPackages = with pkgs; [ curl vim ];
 
-    boot.loader.systemd-boot.enable = true;
-    boot.loader.efi.canTouchEfiVariables = true;
-
-    nixpkgs.hostPlatform = "x86_64-linux";
-
-    services.openssh.enable = true;
-    networking.firewall.allowedTCPPorts = [ 22 ];
-    # networking.networkmanager.enable = false;
-    # networking.useDHCP = false;
-    #
-    # networking.hosts = let
-    #   nameValuePair = lib.attrsets.nameValuePair;
-    #   mapConfig = hostname: cfg:
-    #     let
-    #       ip = cfg.ip;
-    #       domain = config.networking.domain;
-    #     in nameValuePair "${ip}" [ "${hostname}.${domain}" "${hostname}" ];
-    # in lib.attrsets.mapAttrs' mapConfig hosts;
-    #
-    # systemd.network.enable = true;
-    #
-    # systemd.network.networks."20-lan" = {
-    #   matchConfig.Type = "ether";
-    #   networkConfig = {
-    #     Address = [ "192.168.100.5/24" "2001:db8::b/64" ];
-    #     Gateway = "192.168.100.3";
-    #     DNS = [ "192.168.100.3" ];
-    #     IPv6AcceptRA = true;
-    #     DHCP = "no";
-    #   };
-    # };
-
-    # virtualisation.vmVariant = {
-    #   virtualisation = {
-    #     qemu = {
-    #       networkingOptions = [
-    #         "-netdev tap,id=nd0,ifname=${config.tap_if_name},script=no,downscript=no,br=${config.tap_bridge_name}"
-    #         "-device virtio-net-pci,netdev=nd0,mac=${config.tap_mac_address}"
-    #       ];
-    #     };
-    #   };
-    # };
+    virtualisation.vmVariant = {
+      virtualisation = {
+        qemu = {
+          networkingOptions = [
+            "-netdev tap,id=nd0,ifname=${config.tap_if_name},script=no,downscript=no,br=${config.tap_bridge_name}"
+            "-device virtio-net-pci,netdev=nd0,mac=${config.tap_mac_address}"
+          ];
+        };
+      };
+    };
 
     system.stateVersion = "24.11";
   };
