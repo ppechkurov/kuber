@@ -10,12 +10,24 @@
   # Flake outputs
   outputs = { self, nixpkgs, utils }:
     utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system; };
+      let
+        pkgs = import nixpkgs { inherit system; };
+        run_kluster = pkgs.writeScriptBin "run_kluster" # bash
+          ''
+            #!/usr/bin/env bash
+            QEMU_KERNEL_PARAMS="console=ttyS0";
+            QEMU_OPTS="-nographic -serial mon:stdio";
+
+            nix run .#vms.x86_64-linux.jumpbox &
+            nix run .#vms.x86_64-linux.server &
+            nix run .#vms.x86_64-linux.node-0 &
+            nix run .#vms.x86_64-linux.node-1 &
+          '';
       in with pkgs; {
         devShells.default = mkShell {
           QEMU_KERNEL_PARAMS = "console=ttyS0";
           QEMU_OPTS = "-nographic -serial mon:stdio";
-          packages = [ direnv minikube kubectl k9s ];
+          packages = [ direnv minikube kubectl k9s run_kluster ];
         };
         vms = let
           user = "kuber";

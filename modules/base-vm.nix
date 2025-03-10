@@ -37,12 +37,10 @@
       useNetworkd = true;
       useDHCP = true;
 
-      nameservers = [ "192.168.100.1" "8.8.8.8" ];
-
       interfaces.eth1.ipv4 = {
         addresses = [{
           address = ip;
-          prefixLength = 24;
+          inherit prefixLength;
         }];
       };
 
