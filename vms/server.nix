@@ -14,5 +14,31 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ curl vim ];
+  # etcd
+  systemd.services.etcd = {
+    enable = true;
+    description = "etcd";
+    documentation = [ "https://github.com/etcd-io/etcd" ];
+    serviceConfig = {
+      Type = "notify";
+      ExecStart = ''
+        ${pkgs.etcd}/bin/etcd \
+          --name controller \
+          --initial-advertise-peer-urls http://127.0.0.1:2380 \
+          --listen-peer-urls http://127.0.0.1:2380 \
+          --listen-client-urls http://127.0.0.1:2379 \
+          --advertise-client-urls http://127.0.0.1:2379 \
+          --initial-cluster-token etcd-cluster-0 \
+          --initial-cluster controller=http://127.0.0.1:2380 \
+          --initial-cluster-state new \
+          --data-dir=/var/lib/etcd
+      '';
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+
+    wantedBy = [ "multi-user.target" ];
+  };
+
+  environment.systemPackages = with pkgs; [ curl vim etcd kubernetes ];
 }

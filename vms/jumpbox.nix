@@ -19,5 +19,5 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ openssl git kubectl ];
+  environment.systemPackages = with pkgs; [ openssl git kubectl envsubst ];
 }
