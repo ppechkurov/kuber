@@ -4,7 +4,8 @@
 
     ${user} = {
       isNormalUser = true;
-      extraGroups = [ "wheel" "kubernetes" ]; # Enable ‘sudo’ for the user.
+      extraGroups =
+        [ "wheel" "kubernetes" "docker" ]; # Enable ‘sudo’ for the user.
       initialPassword = "${user}";
     };
   };

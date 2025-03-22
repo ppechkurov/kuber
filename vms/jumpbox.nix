@@ -6,6 +6,7 @@
   ];
 
   virtualisation = {
+    docker = { enable = true; };
     vmVariant = {
       virtualisation = {
         cores = 1;
@@ -19,5 +20,13 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ openssl git kubectl envsubst ];
+  environment.systemPackages = with pkgs; [
+    openssl
+    git
+    kubectl
+    envsubst
+    lazydocker
+    inetutils
+    dig
+  ];
 }
